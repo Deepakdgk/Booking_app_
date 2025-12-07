@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bay {{ bay_id }} Technician</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-4">
+    <h1>Bay {{ bay_id }} - Technician</h1>
+    <a href="/" class="btn btn-secondary mb-3">← Back</a>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <label class="form-label">Select Date</label>
+            <input type="date" id="sel_date" class="form-control" value="{{ sel_date }}">
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <label class="form-label">Available Bookings</label>
+            <select id="booking_select" class="form-select mb-3">
+                <option value="">-- choose --</option>
+            </select>
+
+            <div id="details" class="d-none">
+                <h5>Customer Details</h5>
+                <p><strong>Name:</strong> <span id="c_name"></span></p>
+                <p><strong>Phone:</strong> <span id="c_phone"></span></p>
+                <p><strong>Slot:</strong> <span id="c_slot"></span></p>
+
+                <label class="form-label">Technician Remark</label>
+                <textarea id="remark" rows="4" class="form-control mb-2"></textarea>
+                <button id="close_btn" class="btn btn-success">Close & Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const bay = "{{ bay_id }}";
+
+function loadBookings() {
+    const selDate = document.getElementById('sel_date').value;
+    fetch(`/api/bay_bookings?bay=${bay}&date=${selDate}`)
+        .then(r => r.json())
+        .then(list => {
+            const sel = document.getElementById('booking_select');
+            sel.innerHTML = '<option value="">-- choose --</option>';
+            list.forEach(it => {
+                const opt = document.createElement('option');
+                opt.value = it.id;
+                opt.text = `${it.slot_start.split(' ')[1]} - ${it.name} (${it.phone})`;
+                opt.dataset.name = it.name;
+                opt.dataset.phone = it.phone;
+                opt.dataset.slot = `${it.slot_start} - ${it.slot_end}`;
+                sel.appendChild(opt);
+            });
+            document.getElementById('details').classList.add('d-none');
+            document.getElementById('remark').value = '';
+        })
+        .catch(err => alert("Error loading bookings: " + err));
+}
+
+document.getElementById('sel_date').addEventListener('change', loadBookings);
+document.getElementById('booking_select').addEventListener('change', function() {
+    const opt = this.selectedOptions[0];
+    if (!opt || !opt.value) {
+        document.getElementById('details').classList.add('d-none');
+        document.getElementById('remark').value = '';
+        return;
+    }
+    document.getElementById('c_name').innerText = opt.dataset.name;
+    document.getElementById('c_phone').innerText = opt.dataset.phone;
+    document.getElementById('c_slot').innerText = opt.dataset.slot;
+    document.getElementById('details').classList.remove('d-none');
+});
+
+document.getElementById('close_btn').addEventListener('click', function() {
+    const booking_id = document.getElementById('booking_select').value;
+    const remark = document.getElementById('remark').value.trim();
+    if (!booking_id) return alert('Choose a booking first');
+
+    fetch('/api/close_booking', {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body: `booking_id=${booking_id}&remark=${encodeURIComponent(remark)}`
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            alert('Booking closed successfully!');
+            loadBookings();
+        } else {
+            alert('Error closing booking.');
+        }
+    })
+    .catch(err => alert('Error: ' + err));
+});
+
+loadBookings();
+</script>
+</body>
+</html>

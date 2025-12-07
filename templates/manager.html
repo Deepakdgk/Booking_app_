@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manager Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body { padding: 20px; background: #f0f2f5; }
+        .table-container { max-height: 600px; overflow-y: auto; }
+        .navbar-custom { background: #0d6efd; }
+        .navbar-custom .nav-link, .navbar-custom .navbar-brand { color: #fff !important; }
+        .card { border-radius: 10px; }
+        .badge { font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<!-- ▸ Top Navigation Bar -->
+<nav class="navbar navbar-custom navbar-expand">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold">Manager Dashboard</a>
+    <div>
+        <a href="/" class="btn btn-outline-light me-2">← Back</a>
+        <a href="{{ url_for('manager_logout') }}" class="btn btn-warning">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-4">
+
+    <!-- ▸ Month Filter + Calendar Button -->
+    <div class="card p-3 mb-3 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center">
+            <form method="GET" action="/manager" class="d-flex">
+                <input type="month" name="filter_month" class="form-control me-2" value="{{ filter_month }}">
+                <button class="btn btn-primary">Filter</button>
+            </form>
+
+            <a href="/manager/calendar" class="btn btn-success">📅 View Calendar</a>
+        </div>
+    </div>
+
+    <!-- ▸ Booking Table -->
+    <div class="card p-3 shadow-sm">
+        <div class="table-container">
+            <table class="table table-striped table-hover table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Bay</th>
+                        <th>Booking Date</th>
+                        <th>Slot Start</th>
+                        <th>Slot End</th>
+                        <th>Booking Code</th>
+                        <th>Status</th>
+                        <th>Technician Remark</th>
+                        <th>Closed At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td>{{ row.id }}</td>
+                        <td>{{ row.name }}</td>
+                        <td>{{ row.phone }}</td>
+                        <td>{{ row.email or '-' }}</td>
+                        <td>{{ row.bay }}</td>
+                        <td>{{ row.booking_date }}</td>
+                        <td>{{ row.slot_start }}</td>
+                        <td>{{ row.slot_end }}</td>
+                        <td>{{ row.booking_code or '-' }}</td>
+                        <td>
+                            {% if row.closed %}
+                                <span class="badge bg-success">Closed</span>
+                            {% elif row.canceled %}
+                                <span class="badge bg-danger">Canceled</span>
+                            {% else %}
+                                <span class="badge bg-primary">Open</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ row.tech_remark or '-' }}</td>
+                        <td>{{ row.closed_at or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
