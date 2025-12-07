@@ -4,12 +4,38 @@ from datetime import datetime, date
 import random
 import calendar
 from flask import Flask, render_template, request, redirect, jsonify, url_for, session, flash
+import requests  # 📌 Added for SMS
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "fallback_secret_key")  # Needed for session management
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(BASE_DIR, "bookings.db")
+
+# 🔐 FAST2SMS KEY from Render Environment
+FAST2SMS_KEY = os.environ.get("FAST2SMS_API_KEY")
+
+# 📲 SMS Function
+def send_sms(phone, message):
+    """Send SMS via Fast2SMS API"""
+    if not FAST2SMS_KEY:
+        return {"status": "failed", "error": "API key missing"}
+
+    url = "https://www.fast2sms.com/dev/bulkV2"
+    payload = {
+        "sender_id": "TXTIND",
+        "message": message,
+        "route": "v3",
+        "numbers": phone
+    }
+    headers = {
+        "authorization": FAST2SMS_KEY
+    }
+    try:
+        response = requests.request("POST", url, data=payload, headers=headers, timeout=5)
+        return response.json()
+    except Exception as e:
+        return {"status": "failed", "error": str(e)}
 
 # --- Time slots and bays ---
 slots = [
@@ -72,6 +98,10 @@ def book():
     """, (name, phone, email, bay, booking_date, slot_start_full, slot_end_full, datetime.now().isoformat(), booking_code))
     conn.commit()
     conn.close()
+
+    # 📲 SMS on booking success
+    msg = f"Booking Confirmed! Your service slot is on {booking_date} at {start_t}-{end_t}. Thank you!"
+    send_sms(phone, msg)
 
     return redirect(url_for("index"))
 
@@ -183,6 +213,20 @@ def api_close_booking():
                 (remark, datetime.now().isoformat(), booking_id))
     conn.commit()
     conn.close()
+
+    # 📲 SMS on work completion
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT phone, name FROM bookings WHERE id=?", (booking_id,))
+    row = cur.fetchone()
+    conn.close()
+
+    if row:
+        phone = row["phone"]
+        name = row["name"]
+        msg = f"Hello {name}, your vehicle service is completed. Please pick up your vehicle. Thank you!"
+        send_sms(phone, msg)
+
     return jsonify({"success": True})
 
 # ---------------- MANAGER CALENDAR VIEW ----------------
