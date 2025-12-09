@@ -19,6 +19,7 @@ FAST2SMS_KEY = os.environ.get("FAST2SMS_API_KEY")
 def send_sms(phone, message):
     """Send SMS via Fast2SMS API"""
     if not FAST2SMS_KEY:
+        print("❌ SMS FAILED: API key missing")
         return {"status": "failed", "error": "API key missing"}
 
     url = "https://www.fast2sms.com/dev/bulkV2"
@@ -33,8 +34,17 @@ def send_sms(phone, message):
     }
     try:
         response = requests.request("POST", url, data=payload, headers=headers, timeout=5)
+
+        # 🔍 Log response (required to check problems on Render)
+        try:
+            print("📩 SMS RESPONSE:", response.json())
+        except:
+            print("⚠️ SMS RESPONSE PARSE ERROR:", response.text)
+
         return response.json()
+
     except Exception as e:
+        print("⚠️ SMS ERROR:", str(e))
         return {"status": "failed", "error": str(e)}
 
 # --- Time slots and bays ---
@@ -271,3 +281,4 @@ def manager_calendar():
 # ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run()
+
